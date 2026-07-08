@@ -142,4 +142,41 @@ rehab-coach/
 
 ## 许可证
 
-开源发布前请补充根目录 `LICENSE`，并在本文列出第三方组件（YOLOv8、Qt、Piper TTS 等）许可说明。
+本仓库**自有代码**（`src/`、`scripts/`、`start_rk3588_system.sh` 等）采用 [MIT License](LICENSE)。
+
+以下第三方组件、模型与运行时**不随本仓库一并授权**，使用前请阅读各自许可条款；若对外分发二进制或提供服务，须自行确认合规义务（尤其 YOLOv8 的 AGPL、Qt 的 LGPL、Rockchip SDK 等）。
+
+### 第三方组件与许可
+
+| 组件 | 用途 | 许可 | 说明 |
+|------|------|------|------|
+| [Qt 5](https://www.qt.io/) | `src/qt_gui/` 图形界面 | **LGPL v3** | Linux 下动态链接；修改 Qt 库本身须开源修改部分 |
+| [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics) | 姿态估计（开发机 `.pt` / 导出 ONNX） | **AGPL-3.0** | 权重与 `ultralytics` 包受其约束；对外提供网络服务或分发修改版时需特别注意 |
+| YOLOv8n-Pose 权重 | `models/yolov8n-pose*.rknn` / `.pt` | **AGPL-3.0**（随 Ultralytics） | 由官方权重转换；**未包含在 Git 仓库**，需自行获取 |
+| [OpenCV](https://opencv.org/) | 摄像头、图像处理、标定 | **Apache 2.0** | Python `opencv-python` |
+| [NumPy](https://numpy.org/) | 数值计算 | **BSD 3-Clause** | |
+| [PyYAML](https://pyyaml.org/) | 配置文件 | **MIT** | |
+| [pyserial](https://github.com/pyserial/pyserial) | IMU 串口 | **BSD 3-Clause** | |
+| [Sherpa-ONNX](https://github.com/k2-fsa/sherpa-onnx) | RK3588 离线 TTS 推理 | **Apache 2.0** | `sherpa-onnx` Python 包 |
+| [Piper](https://github.com/rhasspy/piper) / VITS 语音模型 | TTS 模型来源（如 `vits-melo-tts-zh_en`） | **MIT**（Piper）/ 见模型包内 `LICENSE` | 模型文件在 `assets/tts_models/`，**未包含在 Git**；`start_rk3588.sh` 可从 `third_party/piper-tts/` 链接 |
+| [Qwen2.5](https://github.com/QwenLM/Qwen2.5) | 本地 LLM 权重（`.rkllm`） | **Apache 2.0**（模型） | 可选；权重**未包含在 Git** |
+| [RKNN Toolkit 2 / rknn-toolkit2-lite](https://github.com/airockchip/rknn-toolkit2) | YOLO RKNN 推理 | **Rockchip 专有 SDK 条款** | 须从 Rockchip 渠道安装并接受其许可 |
+| [RKLLM Runtime](https://github.com/airockchip/rknn-llm) | Qwen `.rkllm` 推理（`librkllmrt.so`） | **Rockchip 专有 SDK 条款** | 置于 `third_party/`，**未包含在 Git** |
+| `tiny_tcn.onnx` | IMU 左右手评分（可选） | **MIT**（本仓库训练导出） | 见 `models/` |
+| [pyttsx3](https://github.com/nateshmbhat/pyttsx3) | 开发调试 TTS（可选） | **MPL 2.0** | 非板端默认后端 |
+| Android SDK / Gradle | `apps/android/` 蓝牙网关 App | **Apache 2.0** 等（Google 条款） | 编译需本机 Android SDK |
+| [Noto CJK](https://fonts.google.com/noto) | 中文字体（系统包 `fonts-noto-cjk`） | **SIL OFL 1.1** | 通过 apt 安装，不随仓库分发 |
+
+### 未随仓库分发的资源
+
+以下目录/文件在 [`.gitignore`](.gitignore) 中排除，**许可与获取方式以提供方为准**：
+
+- `models/*.rknn`、`models/*.rkllm` — 见 [`models/README.md`](models/README.md)
+- `assets/tts_models/` — Sherpa-ONNX / Piper 兼容 VITS 模型
+- `third_party/` — `librkllmrt.so`、Piper 模型等 Rockchip / 第三方二进制
+- `docs/` — 内部文档
+- `src/qt_gui/res/pic/training_gifs/` — 训练示范动图
+
+### 免责声明
+
+本项目为康复辅助软件，**不构成医疗诊断或治疗建议**。部署与使用前请遵守当地法规及上述第三方许可。
