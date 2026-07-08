@@ -1,0 +1,35 @@
+<RCC>
+    <!-- training_gifs/*.gif 体积约 200MB，不嵌入 qrc（编译 qrc_pic.cpp 会 OOM）。
+         运行时从 build-linux/res/pic/training_gifs 或 REHAB_GIF_DIR 加载。 -->
+    <qresource prefix="/">
+        <file>res/pic/background-1.png</file>
+        <file>res/pic/background-2.png</file>
+        <file>res/pic/background-3.png</file>
+        <file>res/pic/background-4.png</file>
+        <file>res/pic/pwd.png</file>
+        <file>res/pic/user_name.png</file>
+        <file>res/pic/1.png</file>
+        <file>res/pic/2.png</file>
+        <file>res/pic/3.png</file>
+        <file>res/pic/4.png</file>
+        <file>res/pic/logo.png</file>
+        <file>res/pic/rehab_advice/exercise_biceps_curl_repetition.png</file>
+        <file>res/pic/rehab_advice/exercise_essential_tremor_spiral.png</file>
+        <file>res/pic/rehab_advice/exercise_grip_strength_stability.png</file>
+        <file>res/pic/rehab_advice/exercise_overhead_press_arm_raise.png</file>
+        <file>res/pic/rehab_advice/exercise_pendulum_exercise.png</file>
+        <file>res/pic/rehab_advice/exercise_resistance_band_back_flyes.png</file>
+        <file>res/pic/rehab_advice/exercise_wall_pushup.png</file>
+        <file>res/pic/rehab_advice/med_acetaminophen.png</file>
+        <file>res/pic/rehab_advice/med_baclofen.png</file>
+        <file>res/pic/rehab_advice/med_botulinum_toxin.png</file>
+        <file>res/pic/rehab_advice/med_celecoxib.png</file>
+        <file>res/pic/rehab_advice/med_corticosteroid_injection.png</file>
+        <file>res/pic/rehab_advice/med_diclofenac_topical_gel.png</file>
+        <file>res/pic/rehab_advice/med_ibuprofen.png</file>
+        <file>res/pic/rehab_advice/med_naproxen.png</file>
+        <file>res/pic/rehab_advice/med_primidone.png</file>
+        <file>res/pic/rehab_advice/med_propranolol.png</file>
+        <file>res/pic/rehab_advice/med_tizanidine.png</file>
+    </qresource>
+</RCC>

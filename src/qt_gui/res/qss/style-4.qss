@@ -1,0 +1,159 @@
+/**
+    入口页青绿皮肤：统一一键进入面板、开始使用按钮与主题选择按钮样式。
+*/
+* {
+    font-family: "Microsoft YaHei";
+}
+
+#frame_background {
+    border-image: url(:/res/pic/background-4.png) 0 0 0 0 stretch stretch;
+}
+
+#layoutWidget, #frame {
+    background: transparent;
+    border: none;
+}
+
+#label_title {
+    color: #002B27;
+    background-color: rgba(212, 255, 248, 245);
+    border: 2px solid rgba(0, 94, 84, 210);
+    border-radius: 22px;
+    padding: 10px 30px;
+    font-family: "Microsoft YaHei";
+    font-size: 28px;
+    font-weight: 900;
+}
+
+#frame_login {
+    background-color: #ffffff;
+    border: none;
+}
+
+#frame_pic {
+    background: transparent;
+    border: none;
+}
+
+#label_login {
+    color: #002B27;
+    background: transparent;
+    border: none;
+    font-family: "Microsoft YaHei";
+    font-size: 34px;
+    font-weight: 700;
+}
+
+
+#quickStartPanel {
+    background-color: rgba(212, 255, 248, 96);
+    border: none;
+}
+
+#quickStartTitle {
+    color: #002B27;
+    background: transparent;
+    border: none;
+    font-family: "Microsoft YaHei";
+    font-size: 30px;
+    font-weight: 900;
+}
+
+#quickStartSubtitle {
+    color: #244A45;
+    background: transparent;
+    border: none;
+    font-family: "Microsoft YaHei";
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 150%;
+}
+
+#quickStartTip {
+    color: #6C8581;
+    background: transparent;
+    border: none;
+    font-family: "Microsoft YaHei";
+    font-size: 13px;
+}
+
+#frame_user_name, #frame_pwd {
+    border: 1px solid #696969;
+    border-radius: 12px;
+    background-color: #ffffff;
+    min-height: 54px;
+}
+
+#frame_user_name:hover, #frame_pwd:hover {
+    border: 1px solid #74fae9;
+}
+
+QLineEdit#lineE_user_name, QLineEdit#lineE_pwd {
+    border: none;
+    background: transparent;
+    color: #2F3640;
+    font-family: "Microsoft YaHei";
+    font-size: 15px;
+    min-height: 38px;
+    padding: 0 8px;
+    selection-background-color: #74fae9;
+}
+
+QLineEdit#lineE_user_name:focus, QLineEdit#lineE_pwd:focus {
+    border: none;
+    background: transparent;
+}
+
+
+#label_user_name {
+    border-image: url(:/res/pic/user_name.png);
+    background: transparent;
+}
+
+#label_pwd {
+    border-image: url(:/res/pic/pwd.png);
+    background: transparent;
+}
+
+#btn_login, #btn_register {
+    color: #002B27;
+    border: none;
+    background-color: #74fae9;
+    border-radius: 12px;
+    font-family: "Microsoft YaHei";
+    font-size: 18px;
+    font-weight: 800;
+}
+
+#btn_login:hover, #btn_register:hover {
+    color: #002B27;
+    border: none;
+    background-color: #4af8e2;
+    border-radius: 12px;
+}
+
+#btn_login:pressed, #btn_register:pressed {
+    color: #ffffff;
+    border: none;
+    background-color: #316f67;
+    border-radius: 12px;
+}
+
+#btn_1, #btn_2, #btn_3, #btn_4 {
+    background-color: rgba(255, 255, 255, 225);
+    border: 1px solid rgba(210, 210, 210, 180);
+    border-radius: 10px;
+    font-family: "Microsoft YaHei";
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#btn_1 { color: #e83737; }
+#btn_2 { color: #d7b105; }
+#btn_3 { color: #7185ff; }
+#btn_4 { color: #316f67; }
+
+#btn_1:hover, #btn_2:hover, #btn_3:hover, #btn_4:hover {
+    border: 1px solid #74fae9;
+    background-color: #ffffff;
+}

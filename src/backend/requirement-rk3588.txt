@@ -1,0 +1,15 @@
+# RK3588 板端依赖（不含 ultralytics，Pose 走 RKNN NPU）
+
+opencv-python-headless>=4.8.0
+numpy>=1.24.0
+pyyaml>=6.0
+filterpy>=1.4.5
+scipy>=1.11.0
+
+# RKNN 运行时（在板子上安装，包名以 Rockchip 发布为准）
+# rknn-toolkit2-lite>=1.6.0
+
+# 语音 / LLM（RK3588 板端）
+sherpa-onnx>=1.10.0
+soundfile>=0.12.0
+# pyttsx3>=2.90  # 开发机备选

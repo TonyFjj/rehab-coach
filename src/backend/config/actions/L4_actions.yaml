@@ -1,0 +1,112 @@
+# ============================================
+# L4级：全幅主动训练方案 (81-100分)
+# ============================================
+level: L4
+name: "全幅主动级"
+description: "复合功能训练+协调性训练"
+sensor_strategy: "视觉主导，IMU微调"
+
+actions:
+  - id: "L4_A1"
+    name: "太极拳式复合运动"
+    description: "站立，按太极拳节拍完成全套动作序列"
+    position: "standing"
+    body_region: integration
+    camera_preset: full_body
+    sequence:
+      - beat: "起势：双手前举"
+        joint: "shoulder_flexion"
+        target_angle: 75
+        tolerance: 20
+      - beat: "野马分鬃：双手外展"
+        joint: "shoulder_abduction"
+        target_angle: 75
+        tolerance: 20
+      - beat: "白鹤亮翅：双手上举"
+        joint: "shoulder_combined"
+        target_angle: 120
+        tolerance: 25
+      - beat: "搂膝探海：单手前推"
+        joint: "shoulder_flexion"
+        target_angle: 70
+        tolerance: 20
+    timing:
+      full_sequence_time: [20, 40]
+      tolerance: 8
+    repetitions: [3, 5]
+    rep_tolerance: 1
+
+  - id: "L4_A2"
+    name: "站立上肢负重训练"
+    description: "站立，双手各握轻量哑铃完成动作序列"
+    position: "standing"
+    body_region: upper
+    camera_preset: upper_body
+    weight_kg:
+      score_81_85: 0.5
+      score_86_90: 0.75
+      score_91_100: 1.0
+    joints:
+      - name: "shoulder_abduction"
+        target_angle: 90
+        tolerance: 5
+      - name: "shoulder_flexion"
+        target_angle: 150
+        tolerance: 10
+    timing:
+      cycle_time: [4, 6]
+      cycle_tolerance: 1
+    repetitions: [10, 15]
+    rep_tolerance: 2
+
+  # 原四向步态对视觉计次要求过高，改为单脚平衡进阶（与 L3 同指标，时长/幅度更高）
+  - id: "L4_A3"
+    name: "站立单脚平衡进阶"
+    description: "站立，双手叉腰或轻扶固定物，交替抬起一只脚保持平衡"
+    position: "standing"
+    body_region: lower
+    camera_preset: lower_body
+    joints:
+      - name: "foot_height"
+        target_value: 12
+        min_value: 6
+        max_value: 22
+      - name: "body_sway"
+        max_angle: 6
+        tolerance: 2
+    timing:
+      hold_time: [8, 15]
+      hold_tolerance: 4
+    repetitions: [4, 6]
+    rep_tolerance: 1
+    bilateral: true
+    corrections:
+      - type: "sway_large"
+        condition: "body_sway > 8"
+        prompt: "身体稳住，眼睛看前方一个固定点"
+      - type: "foot_down"
+        condition: "foot_height < 4"
+        prompt: "抬起的脚再离开地面一些"
+
+  - id: "L4_A4"
+    name: "站立身体旋转协调训练"
+    description: "站立，双手平举，身体左右旋转90度"
+    position: "standing"
+    body_region: integration
+    camera_preset: full_body
+    joints:
+      - name: "trunk_rotation"
+        target_angle: 85
+        min_angle: 70
+        max_angle: 100
+      - name: "shoulder_stability"
+        max_sway: 5
+        tolerance: 2
+      - name: "head_level"
+        max_tilt: 5
+    timing:
+      rotation_time: [2, 3]
+      tolerance: 0.5
+    repetitions: [5, 8]
+    rep_tolerance: 2
+    bilateral: true

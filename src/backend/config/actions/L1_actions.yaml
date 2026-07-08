@@ -1,0 +1,147 @@
+# ============================================
+# L1级：卧床主动训练方案 (0-30分)
+# ============================================
+level: L1
+name: "卧床主动级"
+description: "卧床位主动关节活动，适用于偏瘫恢复早期、术后卧床期"
+sensor_strategy: "IMU主导，视觉辅助"
+
+actions:
+  # ---- 动作1：卧床主动肩关节前屈 ----
+  - id: "L1_A1"
+    name: "卧床主动肩关节前屈"
+    description: "仰卧位，患侧手臂从体侧自行缓慢举向头顶方向，放下后再开始下一次"
+    position: "supine"
+    body_region: upper
+    camera_preset: upper_body
+    joints:
+      - name: "shoulder_flexion"
+        target_angle: 100
+        min_angle: 70
+        max_angle: 130
+        alert_min: 55
+        alert_max: 145
+    timing:
+      rise_time: [3, 5]
+      hold_time: [1, 2]
+      fall_time: [3, 5]
+      rise_tolerance: 1
+      hold_tolerance: 1
+      fall_tolerance: 1
+    repetitions: [8, 10]
+    rep_tolerance: 2
+    rest_between_sets: 25
+    corrections:
+      - type: "angle_low"
+        condition: "shoulder_flexion < 55"
+        prompt: "手臂可以再往头顶方向抬一点，量力而行"
+      - type: "speed_fast"
+        condition: "rise_time < 2"
+        prompt: "动作慢一点，缓缓抬起再放下"
+      - type: "jerk_high"
+        condition: "jerk > 30"
+        prompt: "动作再平稳一些，不要突然发力"
+
+  # ---- 动作2：卧床主动肩关节外展 ----
+  - id: "L1_A2"
+    name: "卧床主动肩关节外展"
+    description: "仰卧位，手臂从体侧自行向外侧打开至与肩同高附近，再缓慢收回"
+    position: "supine"
+    body_region: upper
+    camera_preset: upper_body
+    joints:
+      - name: "shoulder_abduction"
+        target_angle: 65
+        min_angle: 45
+        max_angle: 90
+        alert_min: 35
+        alert_max: 95
+    timing:
+      rise_time: [3, 5]
+      hold_time: [1, 2]
+      fall_time: [3, 5]
+      rise_tolerance: 1
+      hold_tolerance: 1
+      fall_tolerance: 1
+    repetitions: [6, 8]
+    rep_tolerance: 2
+    rest_between_sets: 25
+    corrections:
+      - type: "angle_low"
+        condition: "shoulder_abduction < 35"
+        prompt: "手臂可以再向外侧打开一点，慢慢来"
+      - type: "shoulder_hike"
+        condition: "scapula_elevation > 2"
+        prompt: "肩膀放松，不要耸肩"
+
+  # ---- 动作3：卧床主动膝关节屈伸 ----
+  - id: "L1_A3"
+    name: "卧床主动膝关节屈伸"
+    description: "仰卧位，每次只动一条腿：自行将足跟缓慢移向臀部方向（屈膝），再伸直；左右腿轮流"
+    position: "supine"
+    body_region: lower
+    camera_preset: lower_body
+    bilateral: true
+    joints:
+      - name: "knee_flexion"
+        target_angle: 95
+        min_angle: 65
+        max_angle: 120
+        alert_min: 50
+        alert_max: 125
+    timing:
+      rise_time: [3, 4]
+      hold_time: [1, 2]
+      fall_time: [3, 4]
+      rise_tolerance: 1
+      hold_tolerance: 1
+      fall_tolerance: 1
+    repetitions: [8, 10]
+    rep_tolerance: 2
+    rest_between_sets: 25
+    corrections:
+      - type: "angle_low"
+        condition: "knee_flexion < 50"
+        prompt: "足跟可以再往臀部方向收一点，膝盖慢慢弯"
+      - type: "angle_high"
+        condition: "knee_flexion > 125"
+        prompt: "不要弯得太深，以舒适为度"
+      - type: "speed_fast"
+        condition: "rise_time < 2"
+        prompt: "屈膝慢一点，伸直也慢一点"
+
+  # ---- 动作4：仰卧直腿交替抬高 ----
+  - id: "L1_A4"
+    name: "仰卧直腿交替抬高"
+    description: "仰卧位，一条腿贴床不动，另一条腿保持膝伸直、缓慢抬离床面，落下后再换腿"
+    position: "supine"
+    body_region: lower
+    camera_preset: lower_body
+    bilateral: true
+    joints:
+      - name: "leg_raise_angle"
+        target_angle: 28
+        min_angle: 12
+        max_angle: 50
+        alert_min: 8
+        alert_max: 55
+    timing:
+      rise_time: [2, 4]
+      hold_time: [1, 2]
+      fall_time: [2, 4]
+      rise_tolerance: 1
+      hold_tolerance: 0.5
+      fall_tolerance: 1
+    repetitions: [6, 8]
+    rep_tolerance: 2
+    rest_between_sets: 20
+    corrections:
+      - type: "angle_low"
+        condition: "leg_raise_angle < 8"
+        prompt: "抬起的腿再高一些，膝盖保持伸直"
+      - type: "knee_bent"
+        condition: "knee_flexion_active < 155"
+        prompt: "请保持膝盖伸直，用大腿根部发力抬起"
+      - type: "speed_fast"
+        condition: "rise_time < 1.5"
+        prompt: "抬起和放下都慢一点，稳住再换腿"

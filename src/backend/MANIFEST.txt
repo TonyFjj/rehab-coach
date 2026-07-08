@@ -1,0 +1,23 @@
+# rehab-coach M2 RKNN deploy
+# 2026-06-03T00:53:13.843954
+
+main.py
+initial_assessment.py
+training_session.py
+core
+fusion
+vision
+interface
+llm
+config
+data/imu
+scripts/stereo_calibrate.py
+scripts/export_yolov8_pose_onnx.py
+docs/m2_deploy.md
+docs/rknn_pose.md
+docs/qt_integration.md
+docs/imu_delivery_spec.md
+requirement-rk3588.txt
+models/yolov8n-pose.rknn
+config/camera_config.yaml (from rk3588)
+start_rk3588.sh

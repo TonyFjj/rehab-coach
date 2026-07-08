@@ -1,0 +1,122 @@
+# ============================================
+# L3级：站立主动训练方案 (61-80分)
+# ============================================
+level: L3
+name: "站立主动级"
+description: "站立全幅运动+平衡训练"
+sensor_strategy: "视觉主导，IMU辅助"
+
+actions:
+  - id: "L3_A1"
+    name: "站立肩关节全幅前屈上举"
+    description: "站立，双手从体前向上举至最高点"
+    position: "standing"
+    body_region: upper
+    camera_preset: upper_body
+    joints:
+      - name: "shoulder_flexion"
+        target_angle: 165
+        min_angle: 140
+        max_angle: 180
+    timing:
+      rise_time: [2, 3]
+      hold_time: [3, 5]
+      fall_time: [2, 3]
+      rise_tolerance: 0.5
+      hold_tolerance: 1
+      fall_tolerance: 0.5
+    repetitions: [12, 15]
+    rep_tolerance: 2
+    compensation_checks:
+      - type: "shoulder_hike"
+        threshold: 3
+        prompt: "肩膀放松，不要耸肩"
+      - type: "trunk_lean"
+        threshold: 10
+        prompt: "身体站直，不要前倾"
+      - type: "knee_bend"
+        threshold: 10
+        prompt: "膝盖伸直，不要弯曲借力"
+
+  - id: "L3_A2"
+    name: "站立肩关节全幅外展"
+    description: "站立，双手从体侧向外上方举起至最大角度"
+    position: "standing"
+    body_region: upper
+    camera_preset: upper_body
+    joints:
+      - name: "shoulder_abduction"
+        target_angle: 135
+        min_angle: 110
+        max_angle: 160
+    timing:
+      rise_time: [2, 3]
+      hold_time: [3, 5]
+      fall_time: [2, 3]
+      rise_tolerance: 0.5
+      hold_tolerance: 1
+      fall_tolerance: 0.5
+    repetitions: [12, 15]
+    rep_tolerance: 2
+
+  - id: "L3_A3"
+    name: "站立半蹲训练"
+    description: "站立，双手前举，缓慢屈膝下蹲至大腿与地面平行"
+    position: "standing"
+    body_region: lower
+    camera_preset: lower_body
+    joints:
+      - name: "knee_flexion"
+        target_angle: 90
+        min_angle: 70
+        max_angle: 110
+    timing:
+      down_time: [2, 3]
+      hold_time: [2, 3]
+      up_time: [2, 3]
+      down_tolerance: 0.5
+      hold_tolerance: 1
+      up_tolerance: 0.5
+    repetitions: [8, 10]
+    rep_tolerance: 2
+    corrections:
+      - type: "knee_valgus"
+        condition: "knee_over_toe"
+        prompt: "膝盖不要超过脚尖，尽量往后坐"
+      - type: "trunk_lean"
+        condition: "trunk_forward > 15"
+        prompt: "胸口挺起，背部挺直，不要弯腰"
+      - type: "knee_tremor"
+        condition: "knee_tremor_detected"
+        prompt: "膝盖稳住，不要打颤，如果吃力可以减少下蹲幅度"
+      - type: "heel_lift"
+        condition: "heel_off_ground"
+        prompt: "双脚踩实地面，脚跟不要抬起"
+
+  - id: "L3_A4"
+    name: "站立单脚平衡训练"
+    description: "站立，缓慢抬起一只脚离地，保持单脚站立"
+    position: "standing"
+    body_region: lower
+    camera_preset: lower_body
+    joints:
+      - name: "foot_height"
+        target_value: 15
+        min_value: 5
+        max_value: 25
+      - name: "body_sway"
+        max_angle: 5
+        tolerance: 2
+    timing:
+      hold_time: [10, 30]
+      hold_tolerance: 5
+    repetitions: [3, 5]
+    rep_tolerance: 1
+    bilateral: true
+    corrections:
+      - type: "sway_large"
+        condition: "body_sway > 7"
+        prompt: "身体稳住，眼睛看前方一个固定点"
+      - type: "foot_down"
+        condition: "foot_height < 3"
+        prompt: "脚再抬高一点，离开地面"

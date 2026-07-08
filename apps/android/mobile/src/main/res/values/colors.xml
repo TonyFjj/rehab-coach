@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#142B2F</color>
+    <color name="muted">#65757A</color>
+    <color name="page_bg">#F7F8F5</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="primary">#0E6F72</color>
+    <color name="primary_dark">#0A4F52</color>
+    <color name="accent">#7A9E65</color>
+    <color name="warning">#B7791F</color>
+    <color name="danger">#B94B43</color>
+    <color name="coral">#D66A50</color>
+    <color name="line">#DCE5E2</color>
+</resources>

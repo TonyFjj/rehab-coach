@@ -1,0 +1,20 @@
+# 训练分块：上肢 / 下肢 / 整合课（半身近距 vs 全身远距）
+blocks:
+  upper:
+    label: "上肢训练"
+    camera_preset: upper_body
+    setup_tts: "请把摄像头对准患者上半身，画面里能看到肩、肘和双手；请患者独自完成动作。"
+    lock_hint: "请患者保持在画面中央，露出肩、肘和手腕。"
+  lower:
+    label: "下肢训练"
+    camera_preset: lower_body
+    setup_tts: "请把摄像头对准床尾或侧方，画面里能看到双膝和双脚；每次只动一条腿，另一条保持贴床。"
+    lock_hint: "请患者独自在画面内，一次只动一条腿，另一条保持放平。"
+  integration:
+    label: "整合课"
+    camera_preset: full_body
+    setup_tts: "整合课需要全身协调。请后退一步到稍远位置，确保头到脚都在画面里。"
+    lock_hint: "请站在画面中央，确保全身入镜。"
+
+rest_between_blocks_sec: 120
+integration_suggest_every_n_sessions: 5

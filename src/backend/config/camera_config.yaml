@@ -1,0 +1,44 @@
+# 微雪 AR0144 USB 双目（Windows 开发机 / RK3588 请用 camera_config.rk3588.yaml）
+
+camera:
+  model: "AR0144"
+  device_id: 0              # Windows: 0=AR0144, 1=笔记本内置；板端可用 auto
+  auto_detect: false        # RK3588 建议 true 或 device_id: auto
+  max_probe: 10
+  mode: "single_device"     # 单 USB 左右拼接
+  width: 2560
+  height: 720
+  fps: 30
+  baseline_mm: 52           # AR0144 规格基线
+  interface: "USB"
+  calibration_file: "config/stereo_calib.json"
+
+calibration:
+  pattern_size: [9, 6]
+  square_size_mm: 28
+  num_images: 40
+  output_dir: "calibration/"
+  # 立体校正：标定后出现一侧黑/灰屏时，可先设 rectify: false 看原图是否正常
+  rectify: false
+  rectify_alpha: 1.0        # 1.0=保留更多画面；0=裁剪多易黑边
+
+placement:
+  distance_to_patient_m: 1.5
+  height_m: 1.1
+  angle_deg: 0
+
+# 视觉流水线（Windows 开发默认）
+vision:
+  pose_backend: pt
+  pose_model: "yolov8n-pose.pt"
+  # both=左右骨架都对(慢一些) | left_only=训练快，调试窗会单独补右眼 Pose
+  pose_mode: both
+  inference_imgsz: 480
+  pose_stride: 2
+
+# 语音播报（Windows 开发机可用 default / auto）
+audio:
+  device: default
+  backend: auto
+  tts_model: tts_models/vits-melo-tts-zh_en
+  rate: 160

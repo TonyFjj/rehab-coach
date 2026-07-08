@@ -1,0 +1,15 @@
+[Unit]
+Description=Rehab Bluetooth SPP Gateway
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/elf/Desktop/rknn/app/rk3588_gateway
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/elf/Desktop/rknn/app/rk3588_gateway/bt_rehab_gateway.py --project-root /home/elf/Desktop/rknn
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

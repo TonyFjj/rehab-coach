@@ -1,0 +1,85 @@
+# ── 构建产物 ──
+build/
+src/qt_gui/build-linux/
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+**/*.o
+**/*.a
+**/*.so
+**/*.user
+**/.qmake.stash
+**/moc_*.cpp
+**/ui_*.h
+**/qrc_*.cpp
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+*.egg
+.venv/
+venv/
+.env
+.env.*
+
+# ── 大模型与权重 ──
+models/*.rkllm
+models/qwen2.5-*
+models/images.zip
+models/quant_images/
+models/*
+!models/README.md
+!models/tiny_tcn.onnx
+!models/rknn_pose_dataset.txt
+
+*.rknn
+
+# ── 运行时与采集数据 ──
+data/
+src/backend/data/imu/
+**/imu_stream.txt
+assets/tts_cache/
+*.log
+/tmp/
+
+# Qt 用户数据（本机）
+.local/
+
+# ── 训练 GIF（体积较大）──
+src/qt_gui/res/pic/training_gifs/
+
+# ── 第三方/vendor 缓存 ──
+third_party/**/build/
+assets/tts_models.bak/
+
+# ── IDE / 编辑器 ──
+.cursor/
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ── 本地压缩包 ──
+*.rar
+*.zip
+*.7z
+rehab-coach-*.rar
+rehab-coach-*.zip
+
+# ── Android 本地构建 ──
+apps/android/**/build/
+apps/android/**/.gradle/
+*.apk
+*.aab
+
+# ── 敏感信息 ──
+**/credentials*
+**/*secret*
+**/*.pem
+**/*.key

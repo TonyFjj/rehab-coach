@@ -1,0 +1,586 @@
+#!/usr/bin/env python3
+"""Bluetooth SPP gateway for the RK3588 rehab coach project.
+
+The Android app consumes UTF-8 JSON Lines over the standard Serial Port
+Profile UUID. This gateway reads the Qt program's persisted training and
+medical-advice assessment records, then pushes a de-duplicatable sync snapshot
+to the paired phone after connection and whenever the files change.
+"""
+
+import argparse
+import glob
+import json
+import os
+import socket
+import sys
+import time
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
+DEFAULT_RFCOMM_CHANNEL = 1
+MAX_SNAPSHOT_TRAINING = 20
+MAX_SNAPSHOT_ASSESSMENT = 20
+MAX_SYNC_ADVICE_CHARS = 160
+
+
+def load_pybluez():
+    """加载 PyBluez。Python 3.10+ 下 SDP 注册可能失败，RFCOMM 监听仍可用。"""
+    try:
+        import bluetooth  # type: ignore
+        return bluetooth
+    except ImportError:
+        return None
+
+
+def advertise_service_safe(bluetooth, server_sock, service_name: str) -> bool:
+    """Ubuntu python3-bluez + Python 3.10 常因 PY_SSIZE_T_CLEAN 在 SDP 注册时崩溃。"""
+    try:
+        bluetooth.advertise_service(
+            server_sock,
+            service_name,
+            service_id=SPP_UUID,
+            service_classes=[SPP_UUID, bluetooth.SERIAL_PORT_CLASS],
+            profiles=[bluetooth.SERIAL_PORT_PROFILE],
+        )
+        return True
+    except SystemError as exc:
+        print(
+            "[bt][WARN] SDP 服务注册失败（PyBluez 与 Python 3.10 不兼容），"
+            f"已跳过 advertise_service: {exc}",
+            file=sys.stderr,
+        )
+        print(
+            "[bt][WARN] 手机 App 将使用 RFCOMM channel 1 回退连接；"
+            "请确保板机与手机已配对。",
+            file=sys.stderr,
+        )
+        return False
+    except Exception as exc:
+        print(f"[bt][WARN] advertise_service 失败，继续监听 RFCOMM: {exc}", file=sys.stderr)
+        return False
+
+
+def read_json_file(path: str) -> Optional[Dict[str, Any]]:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            text = handle.read().strip()
+    except OSError:
+        return None
+    if not text:
+        return None
+
+    try:
+        root = json.loads(text)
+        return root if isinstance(root, dict) else None
+    except json.JSONDecodeError:
+        pass
+
+    for line in reversed([line.strip() for line in text.splitlines() if line.strip()]):
+        try:
+            root = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(root, dict):
+            return root
+    return None
+
+
+def newest_existing(paths: Sequence[str]) -> Optional[str]:
+    existing = [path for path in paths if path and os.path.isfile(path)]
+    return max(existing, key=os.path.getmtime) if existing else None
+
+
+def find_qt_data_file(file_name: str, env_names: Sequence[str]) -> Optional[str]:
+    for env_name in env_names:
+        env_path = os.environ.get(env_name)
+        if env_path and os.path.isfile(env_path):
+            return env_path
+
+    candidates: List[str] = []
+    env_dir = os.environ.get("REHAB_QT_STORAGE_DIR")
+    if env_dir:
+        candidates.append(os.path.join(env_dir, file_name))
+
+    home = os.path.expanduser("~")
+    patterns = [
+        os.path.join(home, ".local", "share", "prograss_copy", file_name),
+        os.path.join(home, ".local", "share", "**", file_name),
+    ]
+    for pattern in patterns:
+        candidates.extend(glob.glob(pattern, recursive=True))
+
+    return newest_existing(candidates)
+
+
+def find_latest_qt_assessment() -> Optional[str]:
+    return find_qt_data_file("latest_assessment.json", ["REHAB_QT_DATA_FILE", "REHAB_QT_ASSESSMENT_FILE"])
+
+
+def find_qt_training_records() -> Optional[str]:
+    return find_qt_data_file("training_records.json", ["REHAB_QT_TRAINING_RECORDS_FILE"])
+
+
+def find_qt_medical_records() -> Optional[str]:
+    return find_qt_data_file("medical_advice_records.json", ["REHAB_QT_MEDICAL_RECORDS_FILE"])
+
+
+def as_float(value: Any, default: float = 0.0) -> float:
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def as_int(value: Any, default: int = 0) -> int:
+    try:
+        if value is None or value == "":
+            return default
+        return int(round(float(value)))
+    except (TypeError, ValueError):
+        return default
+
+
+def string_list(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()]
+
+
+def number_list(value: Any) -> List[float]:
+    if not isinstance(value, list):
+        return []
+    return [as_float(item) for item in value]
+
+
+def normalize_level(value: Any, score: float) -> str:
+    if isinstance(value, str) and value.strip():
+        raw = value.strip().upper()
+        if raw.startswith("L"):
+            return raw
+        if raw.isdigit():
+            return f"L{raw}"
+    if isinstance(value, (int, float)) and value:
+        return f"L{int(value)}"
+    if score < 40:
+        return "L1"
+    if score <= 60:
+        return "L2"
+    if score <= 80:
+        return "L3"
+    return "L4"
+
+
+def level_name(level: str) -> str:
+    return {
+        "L1": "L1 保护辅助",
+        "L2": "L2 基础恢复",
+        "L3": "L3 稳定提升",
+        "L4": "L4 巩固痊愈",
+    }.get(level, level or "未评估")
+
+
+def default_advice(score: float) -> str:
+    if score >= 81:
+        return "当前康复表现较好，建议继续保持规律训练，重点巩固动作稳定性、左右对称性和耐力。"
+    if score >= 61:
+        return "当前处于稳定提升阶段，建议在安全范围内逐步增加动作质量要求，优先保证动作标准和训练后可恢复。"
+    if score >= 40:
+        return "当前仍需加强基础恢复，建议降低动作难度，从无痛范围内的小幅度、多组短时训练开始。"
+    return "当前得分偏低，建议先暂停高强度训练，在医生或康复治疗师指导下确认训练方案。"
+
+
+def record_id(record_type: str, index: int, timestamp_text: str, score: float) -> str:
+    stable_time = timestamp_text or "no_time"
+    return f"{record_type}:{index}:{stable_time}:{score:.2f}"
+
+
+def score_payload_from_qt_result(item: Dict[str, Any], index: int = 0) -> Dict[str, Any]:
+    score = as_float(item.get("compositeScore", item.get("total_score")))
+    level = normalize_level(item.get("level"), score)
+    timestamp_text = str(item.get("timestamp") or item.get("timestamp_text") or item.get("csv_time") or "")
+    dims = item.get("dims") or item.get("dimension_scores") or {}
+    if not isinstance(dims, dict):
+        dims = {}
+
+    payload = {
+        "record_id": item.get("record_id") or record_id("assessment", index, timestamp_text, score),
+        "record_type": "assessment",
+        "record_index": index,
+        "total_score": score,
+        "level": level,
+        "level_name": item.get("levelName") or item.get("level_name") or level_name(level),
+        "source": item.get("source") or "assessment",
+        "advice": item.get("advice") or default_advice(score),
+        "dimension_scores": dims,
+        "timestamp_text": timestamp_text,
+    }
+
+    action_names = item.get("action_names") or item.get("blockNames")
+    action_scores = item.get("action_scores") or item.get("blockScores")
+    if isinstance(action_names, list):
+        payload["action_names"] = string_list(action_names)
+    if isinstance(action_scores, list):
+        payload["action_scores"] = number_list(action_scores)
+    return payload
+
+
+def training_payload_from_qt_record(item: Dict[str, Any]) -> Dict[str, Any]:
+    index = as_int(item.get("index"))
+    score = as_float(item.get("compositeScore", item.get("total_score")))
+    completion = as_int(item.get("completion"), as_int(score))
+    timestamp_text = str(item.get("timestamp") or item.get("timestamp_text") or "")
+    action_name = str(item.get("actionName") or item.get("action_name") or "康复训练")
+    block_names = string_list(item.get("blockNames") or item.get("action_names"))
+    block_scores = number_list(item.get("blockScores") or item.get("action_scores"))
+    if not block_names:
+        block_names = [action_name]
+    if not block_scores:
+        block_scores = [score]
+
+    dimension_scores = item.get("dimension_scores") or item.get("dims")
+    if not isinstance(dimension_scores, dict):
+        dimension_scores = {
+            f"block_{idx + 1}": max(0.0, min(100.0, value)) / 100.0
+            for idx, value in enumerate(block_scores)
+        }
+
+    level = normalize_level(item.get("levelCode") or item.get("level"), score)
+    level_text = str(item.get("level") or item.get("levelName") or level_name(level))
+    return {
+        "record_id": item.get("record_id") or record_id("training", index, timestamp_text, score),
+        "record_type": "training",
+        "record_index": index,
+        "total_score": score,
+        "completion": completion,
+        "level": level,
+        "level_name": level_text,
+        "source": item.get("source") or "training",
+        "advice": item.get("advice") or default_advice(score),
+        "timestamp_text": timestamp_text,
+        "action_name": action_name,
+        "action_names": block_names,
+        "action_scores": block_scores,
+        "dimension_scores": dimension_scores,
+    }
+
+
+def payload_from_assessment_result(root: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if root.get("event") != "assessment_result" and "total_score" not in root:
+        return None
+    payload = score_payload_from_qt_result(root)
+    payload["source"] = root.get("source") or "assessment"
+    payload["note"] = root.get("note") or ""
+    return payload
+
+
+def load_qt_training_records() -> Tuple[List[Dict[str, Any]], str]:
+    path = find_qt_training_records()
+    root = read_json_file(path) if path else None
+    records = []
+    for item in (root or {}).get("records", []):
+        if isinstance(item, dict):
+            payload = training_payload_from_qt_record(item)
+            if payload["total_score"] > 0 or payload.get("action_scores"):
+                records.append(payload)
+    return records, path or "none"
+
+
+def load_qt_assessment_records() -> Tuple[List[Dict[str, Any]], str]:
+    path = find_qt_medical_records()
+    root = read_json_file(path) if path else None
+    records = []
+    for item in (root or {}).get("records", []):
+        if not isinstance(item, dict):
+            continue
+        result = item.get("result")
+        if isinstance(result, dict):
+            payload = score_payload_from_qt_result(result, as_int(item.get("index")))
+            if payload["total_score"] > 0 or payload.get("dimension_scores"):
+                records.append(payload)
+    return records, path or "none"
+
+
+def load_latest_payload(project_root: str) -> Tuple[Optional[Dict[str, Any]], str]:
+    qt_path = find_latest_qt_assessment()
+    if qt_path:
+        root = read_json_file(qt_path)
+        latest = (root or {}).get("latestAssessment")
+        if isinstance(latest, dict):
+            payload = score_payload_from_qt_result(latest, 0)
+            return payload, qt_path
+
+    assessment_path = os.path.join(
+        project_root,
+        "rehab-coach-rknn",
+        "data",
+        "imu",
+        "assessment_result.txt",
+    )
+    root = read_json_file(assessment_path)
+    payload = payload_from_assessment_result(root or {})
+    if payload:
+        return payload, assessment_path
+    return None, "none"
+
+
+def load_sync_snapshot(project_root: str) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    training_records, training_path = load_qt_training_records()
+    assessment_records, medical_path = load_qt_assessment_records()
+    latest_payload, latest_path = load_latest_payload(project_root)
+
+    if assessment_records:
+        latest_payload = assessment_records[-1]
+    elif latest_payload:
+        latest_payload = dict(latest_payload)
+        latest_payload["record_id"] = latest_payload.get("record_id") or record_id(
+            "assessment", 0, latest_payload.get("timestamp_text", ""), latest_payload.get("total_score", 0.0)
+        )
+        assessment_records.append(latest_payload)
+
+    snapshot = {
+        "training_records": training_records,
+        "assessment_records": assessment_records,
+        "latest_assessment": latest_payload or {},
+        "counts": {
+            "training": len(training_records),
+            "assessment": len(assessment_records),
+        },
+    }
+    sources = {
+        "training_records": training_path,
+        "medical_advice_records": medical_path,
+        "latest_assessment": latest_path,
+    }
+    return snapshot, sources
+
+
+def wrap_message(message_type: str, payload: Dict[str, Any]) -> str:
+    message = {
+        "type": message_type,
+        "timestamp": time.time(),
+        "payload": payload,
+    }
+    return json.dumps(message, ensure_ascii=False)
+
+
+def payload_fingerprint(payload: Dict[str, Any]) -> str:
+    return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def compact_mobile_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    """手机端列表展示所需字段；去掉 dimension_scores 等大字段。"""
+    advice = str(record.get("advice") or "")
+    if len(advice) > MAX_SYNC_ADVICE_CHARS:
+        advice = advice[:MAX_SYNC_ADVICE_CHARS] + "…"
+    compact: Dict[str, Any] = {
+        "record_id": record.get("record_id"),
+        "record_type": record.get("record_type"),
+        "record_index": record.get("record_index", 0),
+        "total_score": record.get("total_score", 0),
+        "completion": record.get("completion", 0),
+        "level": record.get("level", ""),
+        "level_name": record.get("level_name", ""),
+        "timestamp_text": record.get("timestamp_text", ""),
+        "source": record.get("source", ""),
+        "advice": advice,
+    }
+    action_name = record.get("action_name")
+    if action_name:
+        compact["action_name"] = action_name
+    action_names = record.get("action_names")
+    action_scores = record.get("action_scores")
+    if isinstance(action_names, list):
+        compact["action_names"] = string_list(action_names)[:6]
+    if isinstance(action_scores, list):
+        compact["action_scores"] = number_list(action_scores)[:6]
+    return compact
+
+
+def trim_snapshot(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """限制单次同步体积，避免手机端 readLine/解析超大 JSON 导致断连。"""
+    out = dict(snapshot)
+    training = [
+        compact_mobile_record(item)
+        for item in list(out.get("training_records") or [])
+        if isinstance(item, dict)
+    ]
+    assessment = [
+        compact_mobile_record(item)
+        for item in list(out.get("assessment_records") or [])
+        if isinstance(item, dict)
+    ]
+    if len(training) > MAX_SNAPSHOT_TRAINING:
+        training = training[-MAX_SNAPSHOT_TRAINING:]
+    if len(assessment) > MAX_SNAPSHOT_ASSESSMENT:
+        assessment = assessment[-MAX_SNAPSHOT_ASSESSMENT:]
+    out["training_records"] = training
+    out["assessment_records"] = assessment
+    latest = out.get("latest_assessment")
+    if isinstance(latest, dict) and latest:
+        out["latest_assessment"] = compact_mobile_record(latest)
+    out["counts"] = {
+        "training": len(training),
+        "assessment": len(assessment),
+    }
+    return out
+
+
+def send_line(sock: Any, message_type: str, payload: Dict[str, Any]) -> None:
+    data = (wrap_message(message_type, payload) + "\n").encode("utf-8")
+    sock.sendall(data)
+
+
+def send_snapshot(sock: Any, project_root: str, include_summary: bool = False) -> Tuple[str, Dict[str, str], Dict[str, Any]]:
+    snapshot, sources = load_sync_snapshot(project_root)
+    snapshot = trim_snapshot(snapshot)
+    send_line(sock, "sync_snapshot", snapshot)
+    if include_summary:
+        latest = snapshot.get("latest_assessment")
+        if isinstance(latest, dict) and latest:
+            send_line(sock, "rehab_summary", latest)
+    return payload_fingerprint(snapshot), sources, snapshot
+
+
+def run_gateway(
+    project_root: str,
+    service_name: str,
+    poll_seconds: float,
+    rfcomm_channel: int = DEFAULT_RFCOMM_CHANNEL,
+) -> int:
+    bluetooth = load_pybluez()
+    if bluetooth is None:
+        print("PyBluez is not installed. Run: sudo apt install -y bluez python3-bluez", file=sys.stderr)
+        return 2
+
+    server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+    try:
+        server_sock.bind(("", rfcomm_channel))
+    except OSError as exc:
+        print(f"[bt][ERROR] 无法绑定 RFCOMM channel {rfcomm_channel}: {exc}", file=sys.stderr)
+        print("[bt] 可尝试: sudo rfcomm release 1  或换 --channel 2", file=sys.stderr)
+        return 3
+    server_sock.listen(1)
+    port = server_sock.getsockname()[1]
+
+    sdp_ok = advertise_service_safe(bluetooth, server_sock, service_name)
+
+    print(f"[bt] listening {service_name} on RFCOMM channel {port} (SDP={'ok' if sdp_ok else 'skipped'})")
+    print("[bt] 请先在手机与板机完成蓝牙配对，再从 App 设置页连接")
+
+    while True:
+        client_sock = None
+        try:
+            client_sock, client_info = server_sock.accept()
+            try:
+                client_sock.setsockopt(
+                    __import__("socket").SOL_SOCKET,
+                    __import__("socket").SO_KEEPALIVE,
+                    1,
+                )
+            except Exception:
+                pass
+            print(f"[bt] phone connected: {client_info}")
+            time.sleep(0.5)
+            send_line(client_sock, "system_status", {
+                "service": service_name,
+                "status": "ready",
+                "message": "gateway_connected",
+            })
+            time.sleep(0.3)
+            last_fingerprint, sources, snapshot = send_snapshot(client_sock, project_root)
+            payload_bytes = len(
+                (wrap_message("sync_snapshot", snapshot) + "\n").encode("utf-8")
+            )
+            print(
+                f"[bt] sent sync snapshot bytes={payload_bytes} "
+                f"counts={snapshot.get('counts')} sources={sources}"
+            )
+
+            while True:
+                snapshot, sources = load_sync_snapshot(project_root)
+                snapshot = trim_snapshot(snapshot)
+                fingerprint = payload_fingerprint(snapshot)
+                if fingerprint != last_fingerprint:
+                    send_line(client_sock, "sync_snapshot", snapshot)
+                    latest = snapshot.get("latest_assessment")
+                    if isinstance(latest, dict) and latest:
+                        send_line(client_sock, "rehab_summary", latest)
+                    print(f"[bt] sent updated sync counts={snapshot.get('counts')} sources={sources}")
+                    last_fingerprint = fingerprint
+
+                client_sock.settimeout(poll_seconds)
+                try:
+                    data = client_sock.recv(4096)
+                except socket.timeout:
+                    data = None
+                except Exception as recv_error:
+                    print(f"[bt] recv error: {recv_error}")
+                    break
+
+                if data == b"":
+                    print("[bt] phone disconnected (EOF)")
+                    break
+
+                if data:
+                    for raw in data.decode("utf-8", errors="ignore").splitlines():
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError:
+                            continue
+                        command = (msg.get("payload") or {}).get("command")
+                        if command in ("request_latest", "request_sync", "request_history"):
+                            last_fingerprint, sources, snapshot = send_snapshot(
+                                client_sock,
+                                project_root,
+                                include_summary=(command == "request_latest"),
+                            )
+                            print(f"[bt] command={command}, counts={snapshot.get('counts')}, sources={sources}")
+                        elif command == "request_status":
+                            payload = {
+                                "service": service_name,
+                                "sources": sources,
+                                "counts": snapshot.get("counts", {}),
+                            }
+                            send_line(client_sock, "system_status", payload)
+                            print(f"[bt] command={command}")
+                time.sleep(poll_seconds)
+        except KeyboardInterrupt:
+            break
+        except Exception as exc:
+            print(f"[bt] connection ended: {exc}")
+            time.sleep(1.0)
+        finally:
+            if client_sock is not None:
+                try:
+                    client_sock.close()
+                except Exception:
+                    pass
+            print("[bt] waiting for phone...")
+
+    server_sock.close()
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Rehab Bluetooth SPP gateway")
+    parser.add_argument("--project-root", default=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+                        help="Path to the rknn project root")
+    parser.add_argument("--service-name", default="RK3588-Rehab",
+                        help="Bluetooth service name shown to phones")
+    parser.add_argument("--poll-seconds", type=float, default=1.0,
+                        help="How often to re-read Qt record files")
+    parser.add_argument("--channel", type=int, default=DEFAULT_RFCOMM_CHANNEL,
+                        help="RFCOMM channel (default 1, matches Android fallback)")
+    args = parser.parse_args()
+    return run_gateway(
+        os.path.abspath(args.project_root),
+        args.service_name,
+        args.poll_seconds,
+        rfcomm_channel=max(1, int(args.channel)),
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

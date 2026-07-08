@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+project(IMU_collector)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+add_executable(collector collector.c)
+target_link_libraries(collector pthread m)
+target_compile_options(collector PRIVATE -Wall -Wextra -O2)

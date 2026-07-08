@@ -1,0 +1,265 @@
+# ============================================
+
+# L2级：坐姿辅助训练方案 (31-60分)
+
+# ============================================
+
+level: L2
+
+name: "坐姿辅助级"
+
+description: "坐姿主动运动+辅助抵抗，适用于偏瘫恢复中期"
+
+sensor_strategy: "IMU+视觉并重"
+
+
+
+actions:
+
+  - id: "L2_A1"
+
+    name: "坐姿肩关节主动前屈"
+
+    description: "端坐，双手从体前向上举起至肩部以上，放下后再开始下一次"
+
+    position: "sitting"
+    body_region: upper
+    camera_preset: upper_body
+
+    joints:
+
+      - name: "shoulder_flexion"
+
+        target_angle: 140
+
+        min_angle: 95          # 计次须峰值≥此值；须明显超过 idle 起始阈值
+
+        max_angle: 170
+
+        alert_min: 110
+
+        alert_max: 175
+
+    timing:
+
+      rise_time: [2, 4]
+
+      hold_time: [2, 4]
+
+      fall_time: [2, 4]
+
+      rise_tolerance: 0.5
+
+      hold_tolerance: 0.5
+
+      fall_tolerance: 0.5
+
+    repetitions: [10, 12]
+
+    rep_tolerance: 2
+
+    rest_between_sets: 0
+
+    compensation_checks:
+
+      - type: "shoulder_hike"
+
+        threshold: 3
+
+        prompt: "肩膀放松下来，不要耸肩，用手臂的力量举起"
+
+      - type: "trunk_lean"
+
+        threshold: 10
+
+        prompt: "身体坐正，不要往前倾，用肩膀带动手臂"
+
+      - type: "bilateral_asymmetry"
+
+        threshold: 20
+
+        prompt: "左右手尽量一样高，不要一高一低"
+
+    corrections:
+
+      - type: "angle_low"
+
+        condition: "shoulder_flexion < 105"
+
+        prompt: "加油，再往上举到肩膀高度以上！"
+
+      - type: "fall_fast"
+
+        condition: "fall_time < 1.5"
+
+        prompt: "慢慢放下来，不要摔下去，控制住速度"
+
+
+
+  - id: "L2_A2"
+
+    name: "坐姿肩关节外展举"
+
+    description: "端坐，双手从体侧向外展开至肩高，放下后再开始下一次"
+
+    position: "sitting"
+    body_region: upper
+    camera_preset: upper_body
+
+    joints:
+
+      - name: "shoulder_abduction"
+
+        target_angle: 100
+
+        min_angle: 75
+
+        max_angle: 175
+
+        alert_min: 70
+
+        alert_max: 175
+
+    timing:
+
+      rise_time: [2, 4]
+
+      hold_time: [2, 4]
+
+      fall_time: [2, 4]
+
+      rise_tolerance: 0.5
+
+      hold_tolerance: 0.5
+
+      fall_tolerance: 0.5
+
+    repetitions: [10, 12]
+
+    rep_tolerance: 2
+
+    rest_between_sets: 0
+
+    corrections:
+
+      - type: "angle_low"
+
+        condition: "shoulder_abduction < 70"
+
+        prompt: "手臂再往外展开一些，像小鸟展翅一样"
+
+      - type: "angle_high"
+
+        condition: "shoulder_abduction > 175"
+
+        prompt: "不用举太高，到肩膀高度就可以了"
+
+
+
+  - id: "L2_A3"
+
+    name: "坐姿膝关节主动伸屈"
+
+    description: "端坐，单腿轮流小腿前伸伸直并保持，放下后再换腿或下一次"
+
+    position: "sitting"
+    body_region: lower
+    camera_preset: lower_body
+
+    joints:
+
+      - name: "knee_extension"
+
+        target_angle: 65       # 对齐2D可测伸直量；非解剖150°
+
+        min_angle: 45          # 峰值<45°的抖动不计次
+
+        max_angle: 100
+
+        alert_min: 40
+
+    timing:
+
+      rise_time: [2, 4]
+
+      hold_time: [2, 3]
+
+      fall_time: [2, 4]
+
+      rise_tolerance: 0.5
+
+      hold_tolerance: 0.5
+
+      fall_tolerance: 0.5
+
+    repetitions: [10, 12]
+
+    rep_tolerance: 2
+
+    bilateral: true
+
+    corrections:
+
+      - type: "angle_low"
+
+        condition: "knee_extension < 50"
+
+        prompt: "小腿再往前伸一些，膝盖尽量绷直"
+
+      - type: "hold_short"
+
+        condition: "hold_time < 1.5"
+
+        prompt: "伸直后保持住 1～2 秒，别急着放下来"
+
+
+
+  - id: "L2_A4"
+
+    name: "坐姿上肢协调性训练"
+
+    description: "端坐，一手前推一手后拉（划船），完整一轮再计一次"
+
+    position: "sitting"
+    body_region: integration
+    camera_preset: full_body
+
+    joints:
+
+      # 计次/打分仅用 push_shoulder_flexion（=肩前屈2D）
+
+      - name: "push_shoulder_flexion"
+
+        target_angle: 70
+
+        min_angle: 45
+
+        max_angle: 120
+
+      - name: "pull_shoulder_abduction"
+
+        target_angle: 60
+
+        min_angle: 40
+
+        max_angle: 100
+
+    timing:
+
+      cycle_time: [3, 4]
+
+      cycle_tolerance: 0.5
+
+    repetitions: [10, 12]
+
+    rep_tolerance: 2
+
+    corrections:
+
+      - type: "coordination_poor"
+
+        condition: "phase_diff > 0.5"
+
+        prompt: "左右手配合好，一推一拉同时进行"
+
+

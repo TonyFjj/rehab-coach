@@ -1,0 +1,15 @@
+{
+  "config_file": "/home/elf/Desktop/rehab-coach-rknn1/rehab-coach-m2-rknn/config/camera_config.rk3588.yaml",
+  "pattern_size": [
+    9,
+    6
+  ],
+  "square_size_mm": 28.0,
+  "num_images": 40,
+  "baseline_mm": 52.0,
+  "camera_model": "AR0144",
+  "interface": "USB",
+  "rectify": false,
+  "rectify_alpha": 0.0,
+  "reprojection_error": 0.7078540413325989
+}

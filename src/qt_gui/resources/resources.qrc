@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/rehab">
+        <file>dummy.txt</file>
+    </qresource>
+</RCC>

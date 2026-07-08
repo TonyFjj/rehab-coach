@@ -1,0 +1,76 @@
+# ============================================
+# 六维度健康评分配置
+# ============================================
+
+weights:
+  range_of_motion: 0.30    # 抬举幅度
+  smoothness: 0.25         # 运动平滑度
+  tremor: 0.20             # 震颤程度
+  symmetry: 0.15           # 双侧对称性
+  speed: 0.05              # 运动速度
+  endurance: 0.05          # 运动耐力
+
+# 各维度满分
+max_scores:
+  range_of_motion: 30
+  smoothness: 25
+  tremor: 20
+  symmetry: 15
+  speed: 5
+  endurance: 5
+
+# 等级映射
+levels:
+  L1:
+    range: [0, 30]
+    name: "卧床主动级"
+    strategy: "卧床位主动关节活动"
+    sensor: "IMU主导，视觉辅助"
+  L2:
+    range: [31, 60]
+    name: "坐姿辅助级"
+    strategy: "坐姿主动运动+辅助抵抗"
+    sensor: "IMU+视觉并重"
+  L3:
+    range: [61, 80]
+    name: "站立主动级"
+    strategy: "站立全幅运动+平衡训练"
+    sensor: "视觉主导，IMU辅助"
+  L4:
+    range: [81, 100]
+    name: "全幅主动级"
+    strategy: "复合功能训练+协调性训练"
+    sensor: "视觉主导，IMU微调"
+
+# 动态更新参数
+dynamic_update:
+  ema_alpha: 0.7              # 指数移动平均系数 (新评分 = 0.7*旧 + 0.3*新)
+  upgrade_consecutive: 3      # 连续N次达标才升级
+  upgrade_completion: 0.80    # 当前等级动作完成度需达到80%
+  downgrade_drop: 10          # 连续下降超过N分触发降级
+  downgrade_consecutive: 3    # 连续N次下降触发
+
+# 初评测试参数
+initial_assessment:
+  prepare_time: 5             # 准备阶段(秒)
+  test_time: 20               # 测试阶段(秒)
+  recovery_time: 5            # 恢复阶段(秒)
+  total_time: 30              # 总时长(秒)
+  imu_sample_rate: 100        # IMU采样率(Hz)
+  vision_fps: 30              # 视觉帧率(fps)
+
+# 评估阶段视觉系数（IMU 分 × 系数 = 最终分）
+vision_assessment:
+  target_abduction_deg: 150   # 侧平举过顶目标角度
+  hold_angle_deg: 120         # 视为“举过顶”的保持角度
+  min_coef: 0.35              # 视觉系数下限（避免完全归零）
+  sample_interval_sec: 0.1    # 视觉采样间隔
+  precheck_seconds: 3         # 采集前预检时长
+  precheck_pass_score: 0.55   # 预检通过阈值
+  precheck_retries: 1         # 预检失败重试次数
+  fusion_min_quality: 0.40    # 低于此值：仅用 IMU，不做视觉修正
+  partial_fusion_quality: 0.70  # 此区间内：系数向 1.0 插值
+  joint_conf_min: 0.45        # 肩肘腕置信度下限
+  multi_person_warn_ratio: 0.25 # 多人帧占比告警
+  backlight_bright_ratio: 0.15  # 过曝像素占比
+  backlight_dark_ratio: 0.40      # 欠曝像素占比

@@ -1,0 +1,15 @@
+mode: dual_serial
+ports:
+  left: /dev/serial/by-id/usb-Nordic_Semiconductor_nRF52_USB_CDC_BLE_Demo_C498F67E1592-if00
+  right: /dev/serial/by-id/usb-Nordic_Semiconductor_nRF52_USB_CDC_BLE_Demo_EF3E8191FBA7-if00
+baudrate: 115200
+stream_path: data/imu/imu_stream.txt
+write_stream_file: true
+data_dir: data/imu
+assessment_result_path: data/imu/assessment_result.txt
+assessment_log_path: data/imu/assessment_log.csv
+measure_bin: ../../src/imu/dual/IMU_measure/build/IMU_measure
+measure_seconds: 30
+acc_range_g: 16.0
+gyro_range_dps: 2000.0
+lr_swap: false

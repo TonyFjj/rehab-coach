@@ -1,0 +1,48 @@
+# 微雪 AR0144 USB 双目 — RK3588 板端（左右拼接 2560×720）
+
+camera:
+  model: "AR0144"
+  device_id: auto
+  device_path: auto          # 拓展坞下优先 /dev/v4l/by-id/usb-*
+  auto_detect: true
+  max_probe: 32
+  open_retries: 5
+  hub_warmup_sec: 1.5
+  mode: "single_device"      # 单 USB 输出左右拼接画面
+  width: 2560
+  height: 720
+  fps: 30
+  baseline_mm: 52
+  interface: "USB"
+  calibration_file: "config/stereo_calib.json"
+
+calibration:
+  pattern_size: [9, 6]
+  square_size_mm: 28
+  num_images: 40
+  output_dir: "calibration/"
+  rectify: true
+  rectify_alpha: 0.5
+  rectify_crop: true
+  rectify_preview: false   # false=预览/姿态用原图(广角)；true=预览也校正
+
+placement:
+  distance_to_patient_m: 1.5
+  height_m: 1.1
+  angle_deg: 0
+
+vision:
+  pose_backend: rknn
+  # INT8 需 hybrid 量化；当前 int8 版置信度全 0，暂用原 rknn
+  pose_model: "models/yolov8n-pose.rknn"
+  pose_mode: both
+  inference_imgsz: 640
+  pose_stride: 1
+  debug_max_width: 1280    # Qt/OpenCV 调试窗：左右目拼接后的显示宽度
+  debug_max_height: 420    # 随屏宽比例放大，10寸屏预览更清晰
+
+audio:
+  device: plughw:3,0
+  backend: sherpa-onnx
+  tts_model: tts_models/vits-melo-tts-zh_en
+  rate: 160
